@@ -125,7 +125,8 @@ def beregn():
         lbl_inntekt_før_avdrag.config(text=f"Inntekt før avdrag: {inntekt_før_avdrag:,.0f} kr")
 
         # Beregning av Årsinntekt
-        årsinntekt_diff = (inntekt_før_avdrag * 12) - leieinntekter
+        months_to_subtract = 1 if var_11_mnd.get() else 0
+        årsinntekt_diff = (inntekt_før_avdrag * 12) - (leieinntekter * months_to_subtract)
         if årsinntekt_diff < 0:
             årsinntekt = -round(abs(årsinntekt_diff) / 100) * 100
         else:
@@ -155,6 +156,7 @@ def lagre_data():
         "internett": entry_internett.get(),
         "kommunale_avgifter": entry_kommunale_avgifter.get(),
         "møblert": var_møblert.get(),
+        "beregn_med_11_mnd": var_11_mnd.get(),
         "resultater": {
             "gjeld": lbl_gjeld.cget("text"),
             "egenkapital": lbl_egenkapital.cget("text"),
@@ -185,6 +187,7 @@ def laste_inn_data():
             entry_internett.insert(0, data.get("internett", ""))
             entry_kommunale_avgifter.insert(0, data.get("kommunale_avgifter", ""))
             var_møblert.set(data.get("møblert", False))
+            var_11_mnd.set(data.get("beregn_med_11_mnd", False))
 
             # Fyll ut resultater hvis de finnes
             resultater = data.get("resultater", {})
@@ -395,8 +398,9 @@ vindu.geometry("500x900")  # Justert vindustørrelse
 # Koble Return-tasten til beregningsfunksjonen
 vindu.bind('<Return>', lambda event: beregn())
 
-# Initialiser var_møblert
+# Initialiser var_møblert og var_11_mnd
 var_møblert = tk.BooleanVar()
+var_11_mnd = tk.BooleanVar()
 
 # Innholdsramme
 content_frame = tk.Frame(vindu)
@@ -470,9 +474,21 @@ lbl_kommunale_avgifter.pack()
 entry_kommunale_avgifter = tk.Entry(input_frame)
 entry_kommunale_avgifter.pack()
 
+# Initialiser var_møblert og var_11_mnd
+var_møblert = tk.BooleanVar()
+var_11_mnd = tk.BooleanVar()
+
+# Ramme for avhukingsbokser
+checkbox_frame = tk.Frame(input_frame)
+checkbox_frame.pack(pady=(5, 0))
+
 # Avhukingsboks for "Møblert"
-chk_møblert = tk.Checkbutton(input_frame, text="Møblert", variable=var_møblert)
-chk_møblert.pack()
+chk_møblert = tk.Checkbutton(checkbox_frame, text="Møblert", variable=var_møblert)
+chk_møblert.pack(side='left')
+
+# Avhukingsboks for "Beregn med 11 måneder"
+chk_11_mnd = tk.Checkbutton(checkbox_frame, text="Beregn med 11 måneder", variable=var_11_mnd)
+chk_11_mnd.pack(side='left', padx=10)
 
 # Resultater
 result_frame = tk.Frame(main_frame)
