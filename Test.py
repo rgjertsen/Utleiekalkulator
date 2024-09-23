@@ -586,3 +586,4 @@ opprett_graf_knapp()
 
 # Start hovedløkken
 vindu.mainloop()
+
