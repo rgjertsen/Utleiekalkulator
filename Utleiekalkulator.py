@@ -487,7 +487,7 @@ chk_møblert = tk.Checkbutton(checkbox_frame, text="Møblert", variable=var_møb
 chk_møblert.pack(side='left')
 
 # Avhukingsboks for "Beregn med 11 måneder"
-chk_11_mnd = tk.Checkbutton(checkbox_frame, text="Beregn med 11 måneder", variable=var_11_mnd)
+chk_11_mnd = tk.Checkbutton(checkbox_frame, text="Beregn med 11 måneders leieinntekt", variable=var_11_mnd)
 chk_11_mnd.pack(side='left', padx=10)
 
 # Resultater
