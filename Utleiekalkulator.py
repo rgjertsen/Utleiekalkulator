@@ -265,19 +265,6 @@ def vis_grafer():
             widget.destroy()
 
         try:
-            # Initialiser graph_option variabel
-            graph_option = tk.StringVar(value="Alle")  # Standardverdi
-            graph_option.trace('w', oppdater_graf)
-
-            # Opprett radioknapper i graph_frame
-            options = ["Alle", "Gjeld", "Boligverdi", "Egenkapital"]
-            lbl_graph_option = tk.Label(graph_frame, text="Velg graf:", font=('Arial', 12, 'bold'))
-            lbl_graph_option.pack(pady=(10,0))
-
-            for option in options:
-                rb = tk.Radiobutton(graph_frame, text=option, variable=graph_option, value=option)
-                rb.pack(anchor='w')
-
             # Opprett canvas for grafen
             global canvas, fig, ax
             fig, ax = plt.subplots(figsize=(6, 4))
@@ -285,12 +272,26 @@ def vis_grafer():
             canvas.draw()
             canvas.get_tk_widget().pack(pady=10)
 
+            # Opprett en ramme for radioknappene under grafen
+            options_frame = tk.Frame(graph_frame)
+            options_frame.pack(pady=5)
+
+            # Initialiser graph_option variabel
+            graph_option = tk.StringVar(value="Alle")  # Standardverdi
+            graph_option.trace('w', oppdater_graf)
+
+            # Opprett label og radioknapper i options_frame
+            lbl_graph_option = tk.Label(options_frame, text="Velg graf:", font=('Arial', 12, 'bold'))
+            lbl_graph_option.pack()
+
+            options = ["Alle", "Gjeld", "Boligverdi", "Egenkapital"]
+            for option in options:
+                rb = tk.Radiobutton(options_frame, text=option, variable=graph_option, value=option)
+                rb.pack(side='left', padx=5)
+
+
             # Kall funksjonen for å tegne grafen første gang
             oppdater_graf()
-
-            # Legg til en lukkeknapp for grafen
-            btn_close_graph = tk.Button(graph_frame, text="Lukk graf", command=vis_grafer)
-            btn_close_graph.pack(pady=5)
 
             # Pakk graph_frame for å vise grafen
             graph_frame.pack(side='left', fill='both', expand=True)
