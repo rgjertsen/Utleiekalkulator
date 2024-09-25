@@ -297,7 +297,7 @@ def vis_grafer():
             graph_frame.pack(side='left', fill='both', expand=True)
 
             # Utvid vinduet for å gi plass til grafen
-            vindu.geometry("1000x900")  # Øk bredden
+            vindu.geometry("1100x900")  # Øk bredden
 
             graph_visible = True
         except Exception as e:
@@ -408,8 +408,9 @@ content_frame = tk.Frame(vindu)
 content_frame.pack(fill='both', expand=True)
 
 # Hovedramme for inndata og resultater
-main_frame = tk.Frame(content_frame)
-main_frame.pack(side='left', fill='both', expand=True, pady=10)
+main_frame = tk.Frame(content_frame, width=500)
+main_frame.pack(side='left', fill='both', expand=False, pady=10)
+main_frame.pack_propagate(False)  # Prevent main_frame from resizing based on its content
 
 # Ramme for grafen (starter tom)
 graph_frame = tk.Frame(content_frame)
