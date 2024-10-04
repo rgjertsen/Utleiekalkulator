@@ -380,7 +380,8 @@ def oppdater_graf(*args):
 def opprett_graf_knapp():
     try:
         # Last inn grafikonet
-        graf_icon = Image.open("graph.ico")
+        if os.path.exists("graph.ico"):
+            graf_icon = Image.open("graph.ico")
         graf_icon = graf_icon.resize((30, 30), Image.LANCZOS)
         graf_photo = ImageTk.PhotoImage(graf_icon)
 
