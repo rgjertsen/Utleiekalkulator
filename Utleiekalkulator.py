@@ -316,9 +316,11 @@ def oppdater_graf(*args):
 
         # Initialverdier
         boligverdi = float(entry_boligverdi.get())
-        gjeld_text = lbl_gjeld.cget("text").split(":")[1].strip().replace(" kr", "").replace(",", "")
+        gjeld_text_raw = lbl_gjeld.cget("text")
+        gjeld_text = gjeld_text_raw.split(":")[1].strip().replace(" kr", "").replace(",", "")
         gjeld = float(gjeld_text)
-        avdrag_text = lbl_avdrag.cget("text").split(":")[1].strip().replace(" kr", "").replace(",", "")
+        avdrag_text_raw = lbl_avdrag.cget("text")
+        avdrag_text = avdrag_text_raw.split(":")[1].strip().replace(" kr", "").replace(",", "")
         avdrag = float(avdrag_text)
         avdrag_per_år = avdrag * 12
         boligprisvekst = float(entry_boligprisvekst.get() or 0) / 100  # Konverter til desimaltall

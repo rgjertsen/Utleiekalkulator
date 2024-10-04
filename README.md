@@ -107,4 +107,4 @@ Utleiekalkulator er et Python-basert program som hjelper deg med å beregne øko
 
 ## Bidrag
 
-Bidrag er velkomne! Vennligst opprett en fork av repoet, gjør endringene dine, og opprett en pull request.
+Bidrag er velkomne! Vennligst opprett en branch av repoet, gjør endringene dine, og opprett en pull request.
