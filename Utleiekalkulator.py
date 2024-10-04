@@ -86,7 +86,7 @@ def beregn():
 
         # Implementer PMT-funksjonen
         if månedlig_rente != 0:
-            terminbeløp = (gjeld * månedlig_rente * (1 + månedlig_rente) ** antall_terminer) / ((1 + månedlig_rente) ** antall_terminer - 1)
+            terminbeløp = gjeld * månedlig_rente / (1 - (1 + månedlig_rente) ** -antall_terminer)
         else:
             terminbeløp = gjeld / antall_terminer
 
