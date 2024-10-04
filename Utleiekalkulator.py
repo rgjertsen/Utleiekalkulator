@@ -205,8 +205,8 @@ def laste_inn_data():
 
 def ved_avslutning():
     lagre_data()
+    vindu.quit()  # Avslutt Tkinter-løkken riktig
     vindu.destroy()
-    sys.exit()  # Sørg for at programmet avslutter
 
 def nullstill():
     global graph_visible
