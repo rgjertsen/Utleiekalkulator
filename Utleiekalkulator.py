@@ -8,6 +8,10 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image, ImageTk
 import sys
 
+# Funksjon for å hente verdi med standardverdi
+def hent_verdi_med_default(entry_felt, default=0):
+    return float(entry_felt.get() or default)
+
 # Funksjon for å runde til nærmeste multiplum
 def mround(value, base):
     return base * round(value / base)
@@ -26,18 +30,26 @@ program_data_dir.mkdir(exist_ok=True)
 # Full sti til datafilen
 data_file = program_data_dir / 'lagrede_data.json'
 
+def valider_nødvendige_felt():
+    boligverdi_text = entry_boligverdi.get()
+    lånerente_text = entry_lånerente.get()
+    belåningsgrad_text = entry_belåningsgrad.get()
+    if not boligverdi_text or not lånerente_text or not belåningsgrad_text:
+        lbl_resultat.config(text="Feil: Vennligst fyll ut alle nødvendige felt (*)")
+        return False
+    return True
+
 def beregn():
     global avdrag  # Legg til hvis 'avdrag' brukes i andre funksjoner
     try:
+        # Valider at nødvendige felt er fylt ut
+        if not valider_nødvendige_felt():
+            return
+
         # Hent nødvendige verdier fra inntastingsfeltene
         boligverdi_text = entry_boligverdi.get()
         lånerente_text = entry_lånerente.get()
         belåningsgrad_text = entry_belåningsgrad.get()
-        
-        # Valider at nødvendige felt er fylt ut
-        if not boligverdi_text or not lånerente_text or not belåningsgrad_text:
-            lbl_resultat.config(text="Feil: Vennligst fyll ut alle nødvendige felt (*)")
-            return
         
         boligverdi = float(boligverdi_text)
         lånerente = float(lånerente_text)
@@ -60,10 +72,11 @@ def beregn():
             messagebox.showerror("Ugyldig verdi", "Boligprisvekst må være mellom 0% og 10%.")
             return
         
-        leieinntekter = float(entry_leieinntekter.get() or 0)
-        fellesutgifter = float(entry_fellesutgifter.get() or 0)
-        internett = float(entry_internett.get() or 0)
-        kommunale_avgifter = float(entry_kommunale_avgifter.get() or 0)
+        
+        leieinntekter = hent_verdi_med_default(entry_leieinntekter)
+        fellesutgifter = hent_verdi_med_default(entry_fellesutgifter)
+        internett = hent_verdi_med_default(entry_internett)
+        kommunale_avgifter = hent_verdi_med_default(entry_kommunale_avgifter)
         møblert = var_møblert.get()  # Dette vil være True eller False
         
         # Sjekk at de resterende verdiene er positive
