@@ -172,7 +172,7 @@ def lagre_data():
         }
     }
     with open(data_file, "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
 
 def laste_inn_data():
     if data_file.exists():
