@@ -5,17 +5,20 @@ Utleiekalkulator er et Python-basert program som hjelper deg med å beregne øko
 ## Funksjoner
 
 - **Beregninger:**
+
   - Gjeld og egenkapital basert på boligverdi og belåningsgrad.
   - Terminbeløp, lånerenter og avdrag over en 30-årsperiode.
   - Skatteberegninger inkludert fratrekk for møblert utleie.
   - Estimert inntekt før avdrag, årsinntekt og cashflow.
 
 - **Interaktiv grafisk fremstilling:**
+
   - Visualiser utviklingen av gjeld, boligverdi og egenkapital over 10 år.
   - Interaktive verktøytips som viser detaljerte verdier når du holder musepekeren over punktene.
   - Mulighet til å velge hvilke grafer du vil se (alle, gjeld, boligverdi eller egenkapital).
 
 - **Brukervennlig grensesnitt:**
+
   - Grafisk brukergrensesnitt bygget med Tkinter.
   - Lagre og laste inn data automatisk ved oppstart og avslutning.
   - Intuitive inndatafelter med validering og feilhåndtering.
@@ -34,16 +37,7 @@ Utleiekalkulator er et Python-basert program som hjelper deg med å beregne øko
    Sørg for at du har Python 3 installert på systemet ditt.
 
    ```bash
-   pip install -r requirements.txt
-   ```
-
-   Innholdet i `requirements.txt`:
-
-   ```
-   tkinter
-   matplotlib
-   mplcursors
-   pillow
+   pip install matplotlib mplcursors pillow
    ```
 
    *Merk:* `tkinter` er vanligvis inkludert i standard Python-distribusjoner på Windows og macOS. På Linux kan det hende du må installere det manuelt.
@@ -54,16 +48,19 @@ Utleiekalkulator er et Python-basert program som hjelper deg med å beregne øko
    python utleiekalkulator.py
    ```
 
+
 ## Bruk
 
 1. **Inndata:**
 
-   - **Nødvendige felter (merket med *):**
-     - **Boligverdi (kr)***
-     - **Lånerente (%)***
-     - **Belåningsgrad (%)***
+   - \**Nødvendige felter (merket med ***):**
+
+     - **Boligverdi (kr)**\*
+     - **Lånerente (%)**\*
+     - **Belåningsgrad (%)**\*
 
    - **Valgfrie felter:**
+
      - **Boligprisvekst (%)**
      - **Leieinntekter (kr)**
      - **Fellesutgifter/forsikring (kr)**
@@ -98,8 +95,8 @@ Utleiekalkulator er et Python-basert program som hjelper deg med å beregne øko
 ## Filstruktur
 
 - **utleiekalkulator.py:** Hovedprogramfilen.
-- **graph.ico:** Ikon for grafknappen (hvis tilgjengelig).
-- **requirements.txt:** Liste over nødvendige Python-pakker.
+- **graph.ico:** Ikon for grafknappen.
+- **icon.ico:** Ikon som brukes i programmet for bedre brukeropplevelse.
 
 ## Feilhåndtering
 
@@ -108,14 +105,6 @@ Utleiekalkulator er et Python-basert program som hjelper deg med å beregne øko
   - Inndata er utenfor tillatt område.
   - Ugyldige tall eller tegn er oppgitt.
 
-## Lisens
-
-Dette prosjektet er lisensiert under MIT-lisensen - se [LICENSE](LICENSE) for detaljer.
-
 ## Bidrag
 
 Bidrag er velkomne! Vennligst opprett en fork av repoet, gjør endringene dine, og opprett en pull request.
-
-## Kontakt
-
-For spørsmål eller tilbakemeldinger, vennligst kontakt [din e-postadresse].
