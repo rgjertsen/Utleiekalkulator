@@ -8,6 +8,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image, ImageTk
 import sys
 
+# Test
 # Funksjon for å hente verdi med standardverdi
 def hent_verdi_med_default(entry_felt, default=0):
     return float(entry_felt.get() or default)
