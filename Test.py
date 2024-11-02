@@ -3,19 +3,22 @@ from tkinter import messagebox
 import json
 import os
 from pathlib import Path
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.ticker import FuncFormatter
 from PIL import Image, ImageTk
 import sys
 
-import mplcursors  # For å legge til interaktive verktøytips på grafen
+# Funksjon for å hente verdi med standardverdi
+def hent_verdi_med_default(entry_felt, default=0):
+    return float(entry_felt.get() or default)
 
 # Funksjon for å runde til nærmeste multiplum
 def mround(value, base):
     return base * round(value / base)
 
 graph_visible = False  # Holder styr på om grafen er synlig
-cursor = None  # Global cursor-variabel
 
 # Få sti til AppData\Roaming
 appdata_dir = Path(os.getenv('APPDATA'))
@@ -29,18 +32,26 @@ program_data_dir.mkdir(exist_ok=True)
 # Full sti til datafilen
 data_file = program_data_dir / 'lagrede_data.json'
 
+def valider_nødvendige_felt():
+    boligverdi_text = entry_boligverdi.get()
+    lånerente_text = entry_lånerente.get()
+    belåningsgrad_text = entry_belåningsgrad.get()
+    if not boligverdi_text or not lånerente_text or not belåningsgrad_text:
+        lbl_resultat.config(text="Feil: Vennligst fyll ut alle nødvendige felt (*)")
+        return False
+    return True
+
 def beregn():
     global avdrag  # Legg til hvis 'avdrag' brukes i andre funksjoner
     try:
+        # Valider at nødvendige felt er fylt ut
+        if not valider_nødvendige_felt():
+            return
+
         # Hent nødvendige verdier fra inntastingsfeltene
         boligverdi_text = entry_boligverdi.get()
         lånerente_text = entry_lånerente.get()
         belåningsgrad_text = entry_belåningsgrad.get()
-        
-        # Valider at nødvendige felt er fylt ut
-        if not boligverdi_text or not lånerente_text or not belåningsgrad_text:
-            lbl_resultat.config(text="Feil: Vennligst fyll ut alle nødvendige felt (*)")
-            return
         
         boligverdi = float(boligverdi_text)
         lånerente = float(lånerente_text)
@@ -63,10 +74,11 @@ def beregn():
             messagebox.showerror("Ugyldig verdi", "Boligprisvekst må være mellom 0% og 10%.")
             return
         
-        leieinntekter = float(entry_leieinntekter.get() or 0)
-        fellesutgifter = float(entry_fellesutgifter.get() or 0)
-        internett = float(entry_internett.get() or 0)
-        kommunale_avgifter = float(entry_kommunale_avgifter.get() or 0)
+        
+        leieinntekter = hent_verdi_med_default(entry_leieinntekter)
+        fellesutgifter = hent_verdi_med_default(entry_fellesutgifter)
+        internett = hent_verdi_med_default(entry_internett)
+        kommunale_avgifter = hent_verdi_med_default(entry_kommunale_avgifter)
         møblert = var_møblert.get()  # Dette vil være True eller False
         
         # Sjekk at de resterende verdiene er positive
@@ -89,7 +101,7 @@ def beregn():
 
         # Implementer PMT-funksjonen
         if månedlig_rente != 0:
-            terminbeløp = (gjeld * månedlig_rente * (1 + månedlig_rente) ** antall_terminer) / ((1 + månedlig_rente) ** antall_terminer - 1)
+            terminbeløp = gjeld * månedlig_rente / (1 - (1 + månedlig_rente) ** -antall_terminer)
         else:
             terminbeløp = gjeld / antall_terminer
 
@@ -128,7 +140,8 @@ def beregn():
         lbl_inntekt_før_avdrag.config(text=f"Inntekt før avdrag: {inntekt_før_avdrag:,.0f} kr")
 
         # Beregning av Årsinntekt
-        årsinntekt_diff = (inntekt_før_avdrag * 12) - leieinntekter
+        months_to_subtract = 1 if var_11_mnd.get() else 0
+        årsinntekt_diff = (inntekt_før_avdrag * 12) - (leieinntekter * months_to_subtract)
         if årsinntekt_diff < 0:
             årsinntekt = -round(abs(årsinntekt_diff) / 100) * 100
         else:
@@ -158,6 +171,7 @@ def lagre_data():
         "internett": entry_internett.get(),
         "kommunale_avgifter": entry_kommunale_avgifter.get(),
         "møblert": var_møblert.get(),
+        "beregn_med_11_mnd": var_11_mnd.get(),
         "resultater": {
             "gjeld": lbl_gjeld.cget("text"),
             "egenkapital": lbl_egenkapital.cget("text"),
@@ -173,7 +187,7 @@ def lagre_data():
         }
     }
     with open(data_file, "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
 
 def laste_inn_data():
     if data_file.exists():
@@ -188,6 +202,7 @@ def laste_inn_data():
             entry_internett.insert(0, data.get("internett", ""))
             entry_kommunale_avgifter.insert(0, data.get("kommunale_avgifter", ""))
             var_møblert.set(data.get("møblert", False))
+            var_11_mnd.set(data.get("beregn_med_11_mnd", False))
 
             # Fyll ut resultater hvis de finnes
             resultater = data.get("resultater", {})
@@ -205,8 +220,8 @@ def laste_inn_data():
 
 def ved_avslutning():
     lagre_data()
+    vindu.quit()  # Avslutt Tkinter-løkken riktig
     vindu.destroy()
-    sys.exit()  # Sørg for at programmet avslutter
 
 def nullstill():
     global graph_visible
@@ -247,10 +262,12 @@ def vis_grafer():
     global graph_visible, graph_option
     if graph_visible:
         # Skjul grafen
+        for widget in graph_frame.winfo_children():
+            widget.destroy()
         graph_frame.pack_forget()
-        graph_visible = False
         # Tilbakestill vindusstørrelsen
-        vindu.geometry(original_size)
+        vindu.geometry("500x900")  # Original størrelse
+        graph_visible = False
     else:
         # Sjekk at nødvendig data er tilgjengelig
         if lbl_gjeld.cget("text") == "Gjeld: " or lbl_avdrag.cget("text") == "Avdrag: ":
@@ -263,10 +280,6 @@ def vis_grafer():
             widget.destroy()
 
         try:
-            # Initialiser graph_option variabel
-            graph_option = tk.StringVar(value="Alle")  # Standardverdi
-            graph_option.trace('w', oppdater_graf)
-
             # Opprett canvas for grafen
             global canvas, fig, ax
             fig, ax = plt.subplots(figsize=(6, 4))
@@ -274,140 +287,266 @@ def vis_grafer():
             canvas.draw()
             canvas.get_tk_widget().pack(pady=10)
 
-            # Kall funksjonen for å tegne grafen første gang
-            oppdater_graf()
-
             # Opprett en ramme for radioknappene under grafen
             options_frame = tk.Frame(graph_frame)
             options_frame.pack(pady=5)
 
-            # Opprett radioknapper i options_frame
-            options = ["Alle", "Gjeld", "Boligverdi", "Egenkapital"]
+            # Initialiser graph_option variabel
+            graph_option = tk.StringVar(value="Bolig, Gjeld og Egenkapital")  # Standardverdi
+            graph_option.trace('w', oppdater_graf)
+
+            # Opprett label og radioknapper i options_frame
+            lbl_graph_option = tk.Label(options_frame, text="Velg graf:", font=('Arial', 12, 'bold'))
+            lbl_graph_option.pack()
+
+            # Oppdaterte alternativer
+            options = ["Bolig, Gjeld og Egenkapital", "Årsinntekt og Cashflow"]
             for option in options:
                 rb = tk.Radiobutton(options_frame, text=option, variable=graph_option, value=option)
                 rb.pack(side='left', padx=5)
 
-            # Pakk graph_frame ved siden av main_frame
-            graph_frame.pack(side='left', fill='both', expand=False)
+            # Kall funksjonen for å tegne grafen første gang
+            oppdater_graf()
+
+            # Pakk graph_frame for å vise grafen
+            graph_frame.pack(side='left', fill='both', expand=True)
+
+            # Utvid vinduet for å gi plass til grafen
+            vindu.geometry("1100x900")  # Øk bredden
 
             graph_visible = True
-
-            # Juster vindusstørrelsen
-            vindu.geometry(graph_size)
         except Exception as e:
             messagebox.showerror("Feil", f"Kunne ikke generere grafen: {e}")
 
+annotation = None
+hover_cid = None  # Hendelses-ID for hover
+
 def oppdater_graf(*args):
-    global fig, ax, canvas, cursor
+    global fig, ax, canvas, annotation, hover_cid
     try:
         valgt_graf = graph_option.get()
 
-        # Beregn utvikling over tid
-        år = list(range(0, 11))  # År 0 til 10
-        boligverdier = []
-        gjeldsverdier = []
-        egenkapitalverdier = []
-
-        # Initialverdier
-        boligverdi = float(entry_boligverdi.get())
-        gjeld_text = lbl_gjeld.cget("text").split(":")[1].strip().replace(" kr", "").replace(",", "")
-        gjeld = float(gjeld_text)
-        avdrag_text = lbl_avdrag.cget("text").split(":")[1].strip().replace(" kr", "").replace(",", "")
-        avdrag = float(avdrag_text)
-        avdrag_per_år = avdrag * 12
-        boligprisvekst = float(entry_boligprisvekst.get() or 0) / 100  # Konverter til desimaltall
-
-        # Legg til startverdier
-        boligverdier.append(boligverdi)
-        gjeldsverdier.append(gjeld)
-        egenkapitalverdier.append(boligverdi - gjeld)
-
-        for _ in range(10):  # 10 år
-            # Oppdater boligverdi med boligprisvekst
-            boligverdi = boligverdi * (1 + boligprisvekst)
-            boligverdier.append(boligverdi)
-
-            # Oppdater gjeld
-            gjeld = gjeld - avdrag_per_år
-            gjeld = max(mround(gjeld, 100), 0)  # Unngå negativ gjeld
-
-            gjeldsverdier.append(gjeld)
-
-            # Beregn egenkapital
-            egenkapital = boligverdi - gjeld
-            egenkapitalverdier.append(egenkapital)
+        # Tilbakestill annotation
+        annotation = None
 
         # Tøm tidligere plott
         ax.clear()
 
-        # Konverter verdier til millioner
-        boligverdier_mill = [v/1e6 for v in boligverdier]
-        gjeldsverdier_mill = [v/1e6 for v in gjeldsverdier]
-        egenkapitalverdier_mill = [v/1e6 for v in egenkapitalverdier]
+        # Fjern tidligere hendelsesforbindelse hvis den finnes
+        if hover_cid is not None:
+            canvas.mpl_disconnect(hover_cid)
+            hover_cid = None
 
-        # Plot data basert på valgt graf
-        if valgt_graf == "Gjeld":
-            line, = ax.plot(år, gjeldsverdier_mill, label='Gjeld', marker='o')
-            ax.set_title('Gjeld over 10 år')
-            ax.set_ylabel('Gjeld (mill.)')
-            lines = [line]
-            data_values = [gjeldsverdier_mill]
-        elif valgt_graf == "Boligverdi":
-            line, = ax.plot(år, boligverdier_mill, label='Boligverdi', marker='o')
-            ax.set_title('Boligverdi over 10 år')
-            ax.set_ylabel('Boligverdi (mill.)')
-            lines = [line]
-            data_values = [boligverdier_mill]
-        elif valgt_graf == "Egenkapital":
-            line, = ax.plot(år, egenkapitalverdier_mill, label='Egenkapital', marker='o')
-            ax.set_title('Egenkapital over 10 år')
-            ax.set_ylabel('Egenkapital (mill.)')
-            lines = [line]
-            data_values = [egenkapitalverdier_mill]
+        # Lister for verdier over 10 år
+        år = list(range(1, 11))  # År 1 til 10
+        boligverdier = []
+        gjeldsverdier = []
+        egenkapitalverdier = []
+        årsinntekt_verdier = []
+        cashflow_verdier = []
+
+        # Initialverdier fra inndatafeltene og etikettene
+        boligverdi = float(entry_boligverdi.get())
+        gjeld_text_raw = lbl_gjeld.cget("text")
+        gjeld_text = gjeld_text_raw.split(":")[1].strip().replace(" kr", "").replace(",", "")
+        gjeld = float(gjeld_text)
+        terminbelop = float(lbl_terminbelop.cget("text").split(":")[1].strip().replace(" kr", "").replace(",", ""))
+        lånerente = float(entry_lånerente.get()) / 100  # Konverter til desimaltall
+
+        boligprisvekst = float(entry_boligprisvekst.get() or 0) / 100  # Konverter til desimaltall
+        leieinntekter = float(entry_leieinntekter.get() or 0)
+        fellesutgifter = float(entry_fellesutgifter.get() or 0)
+        internett = float(entry_internett.get() or 0)
+        kommunale_avgifter = float(entry_kommunale_avgifter.get() or 0)
+        møblert = var_møblert.get()
+        months_to_subtract = 1 if var_11_mnd.get() else 0
+
+        # Beregn fratrekk møblert
+        if møblert:
+            fratrekk_møblert = leieinntekter * 0.15
         else:
-            # Standard: Vis alle
-            line1, = ax.plot(år, boligverdier_mill, label='Boligverdi', marker='o')
-            line2, = ax.plot(år, gjeldsverdier_mill, label='Gjeld', marker='o')
-            line3, = ax.plot(år, egenkapitalverdier_mill, label='Egenkapital', marker='o')
-            ax.set_title('Utvikling over 10 år')
-            ax.set_ylabel('Beløp (mill.)')
-            lines = [line1, line2, line3]
-            data_values = [boligverdier_mill, gjeldsverdier_mill, egenkapitalverdier_mill]
+            fratrekk_møblert = 0
+
+        # Beregn vedlikeholdsutgifter
+        vedlikeholdsutgifter = leieinntekter * 0.03
+
+        # Beregn lånerenter for første år
+        månedlig_rente = lånerente / 12
+        lånerenter = gjeld * månedlig_rente + 50
+
+        # Beregn skatt for første år
+        skatt = (leieinntekter - fellesutgifter - internett - lånerenter - (kommunale_avgifter / 12) - vedlikeholdsutgifter) * 0.22 - fratrekk_møblert
+
+        # Beregn inntekt før avdrag for første år
+        inntekt_før_avdrag = ((leieinntekter - fellesutgifter - internett - (kommunale_avgifter / 12)) - skatt) - lånerenter - vedlikeholdsutgifter
+
+        # Beregn årsinntekt for første år
+        årsinntekt_diff = (inntekt_før_avdrag * 12) - (leieinntekter * months_to_subtract)
+        if årsinntekt_diff < 0:
+            årsinntekt = -round(abs(årsinntekt_diff) / 100) * 100
+        else:
+            årsinntekt = round(årsinntekt_diff / 100) * 100
+
+        # Beregn avdrag for første år
+        avdrag = terminbelop - lånerenter
+
+        # Beregn cashflow for første år
+        cashflow = (årsinntekt / 12) - avdrag
+
+        # Legg til første års verdier i lister
+        boligverdier.append(boligverdi)
+        gjeldsverdier.append(gjeld)
+        egenkapitalverdier.append(boligverdi - gjeld)
+        årsinntekt_verdier.append(årsinntekt)
+        cashflow_verdier.append(cashflow)
+
+        # Antagelser
+        leieinntekter_vekst = 0.02  # 2% økning per år
+        kommunale_avgifter_vekst = 0.02  # 2% økning per år
+        månedsrente = lånerente / 12
+
+        # Nå beregner vi verdier for år 2 til 10
+        for i in range(1, 10):
+            # Oppdater boligverdi med boligprisvekst
+            boligverdi *= (1 + boligprisvekst)
+            boligverdier.append(boligverdi)
+
+            # Oppdater gjeld
+            gjeld -= avdrag * 12
+            gjeld = max(mround(gjeld, 100), 0)
+            gjeldsverdier.append(gjeld)
+
+            # Oppdater egenkapital
+            egenkapital = boligverdi - gjeld
+            egenkapitalverdier.append(egenkapital)
+
+            # Øk leieinntekter med 2%
+            leieinntekter *= (1 + leieinntekter_vekst)
+
+            # Øk kommunale avgifter med 2%
+            kommunale_avgifter *= (1 + kommunale_avgifter_vekst)
+
+            # Reberegn lånerenter for året
+            lånerenter = gjeld * månedsrente + 50
+
+            # Reberegn avdrag for året
+            avdrag = terminbelop - lånerenter
+
+            # Reberegn vedlikeholdsutgifter
+            vedlikeholdsutgifter = leieinntekter * 0.03
+
+            # Beregn skatt for året
+            skatt = (leieinntekter - fellesutgifter - internett - lånerenter - (kommunale_avgifter / 12) - vedlikeholdsutgifter) * 0.22 - fratrekk_møblert
+
+            # Beregn inntekt før avdrag for året
+            inntekt_før_avdrag = ((leieinntekter - fellesutgifter - internett - (kommunale_avgifter / 12)) - skatt) - lånerenter - vedlikeholdsutgifter
+
+            # Beregn årsinntekt for året
+            årsinntekt_diff = (inntekt_før_avdrag * 12) - (leieinntekter * months_to_subtract) + (boligverdier[i] - boligverdier[i - 1])
+            if årsinntekt_diff < 0:
+                årsinntekt = -round(abs(årsinntekt_diff) / 100) * 100
+            else:
+                årsinntekt = round(årsinntekt_diff / 100) * 100
+            årsinntekt_verdier.append(årsinntekt)
+
+            # Beregn cashflow for året
+            if i == 0:
+                cashflow = (årsinntekt / 12) - avdrag
+            else:
+                cashflow = (årsinntekt / 12) - avdrag - ((boligverdier[i] - boligverdier[i - 1]) / 12)
+            cashflow_verdier.append(cashflow)
+
+        # Resten av koden for plotting forblir uendret
+
+        # Tøm tidligere plott
+        ax.clear()
+
+        # Liste for å lagre scatter plots for hover
+        scatter_plots = []
+
+        # Funksjon for å formatere verdier
+        def format_value(value):
+            return f"{value:,.0f} kr"
+
+        # Funksjon for å håndtere hover
+        def on_hover(event):
+            global annotation
+            if event.inaxes != ax:
+                if annotation is not None:
+                    annotation.set_visible(False)
+                    canvas.draw_idle()
+                return
+
+            vis_annotasjon = False
+
+            for scatter in scatter_plots:
+                cont, ind = scatter.contains(event)
+                if cont:
+                    pos = scatter.get_offsets()[ind["ind"][0]]
+                    value = pos[1]
+
+                    if annotation is None:
+                        annotation = ax.annotate(format_value(value),
+                                                xy=(pos[0], pos[1]),
+                                                xytext=(10, 10), textcoords='offset points',
+                                                bbox=dict(boxstyle='round,pad=0.5', fc='lightgray', alpha=0.9),
+                                                arrowprops=dict(arrowstyle='->'))
+                    else:
+                        annotation.xy = (pos[0], pos[1])
+                        annotation.set_text(format_value(value))
+                    annotation.set_visible(True)
+                    canvas.draw_idle()
+                    return
+
+            # Hvis musepekeren ikke er over et punkt, skjul annotasjonen
+            if annotation is not None:
+                annotation.set_visible(False)
+                canvas.draw_idle()
+
+        if valgt_graf == "Årsinntekt og Cashflow":
+            line1, = ax.plot(år, årsinntekt_verdier, label='Årsinntekt', marker='o')
+            scatter1 = ax.scatter(år, årsinntekt_verdier, color=line1.get_color(), alpha=0, label='_nolegend_')
+            line2, = ax.plot(år, cashflow_verdier, label='Cashflow inn/ut', marker='o')
+            scatter2 = ax.scatter(år, cashflow_verdier, color=line2.get_color(), alpha=0, label='_nolegend_')
+            scatter_plots.extend([scatter1, scatter2])
+            ax.set_title('Årsinntekt og Cashflow over 10 år')
+            ax.set_ylabel('Beløp (kr)')
+            ax.yaxis.set_major_formatter(FuncFormatter(thousands_formatter))
+
+        else:
+            # Vis "Bolig, Gjeld, Egenkapital" grafer
+            line1, = ax.plot(år, boligverdier, label='Boligverdi', marker='o')
+            scatter1 = ax.scatter(år, boligverdier, color=line1.get_color(), alpha=0, label='_nolegend_')
+            line2, = ax.plot(år, gjeldsverdier, label='Gjeld', marker='o')
+            scatter2 = ax.scatter(år, gjeldsverdier, color=line2.get_color(), alpha=0, label='_nolegend_')
+            line3, = ax.plot(år, egenkapitalverdier, label='Egenkapital', marker='o')
+            scatter3 = ax.scatter(år, egenkapitalverdier, color=line3.get_color(), alpha=0, label='_nolegend_')
+            scatter_plots.extend([scatter1, scatter2, scatter3])
+            ax.set_title('Boligverdi, Gjeld og Egenkapital over 10 år')
+            ax.set_ylabel('Beløp (kr)')
+            ax.yaxis.set_major_formatter(FuncFormatter(thousands_formatter))
 
         ax.set_xlabel('År')
         ax.legend()
-
-        # Fjern vitenskapelig notasjon (1e6)
-        ax.ticklabel_format(useOffset=False, style='plain', axis='y')
-
-        # Formater y-aksen til å vise heltall uten desimaler
-        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x)}'))
-
-        # Fjern tidligere cursor hvis den finnes
-        if cursor:
-            cursor.disconnect_events()
-            cursor.remove()
-
-        # Legg til interaktive verktøytips
-        cursor = mplcursors.cursor(lines, hover=True)
-        @cursor.connect("add")
-        def on_add(sel):
-            x, y = sel.target
-            årstall = int(round(x))
-            verdi = y  # y er i millioner
-            sel.annotation.set(text=f'År {årstall}: {verdi:.2f} mill.')
-
         fig.tight_layout()
+
+        # Koble til hover event
+        canvas.mpl_connect('motion_notify_event', on_hover)
 
         # Oppdater canvas
         canvas.draw()
     except Exception as e:
         messagebox.showerror("Feil", f"Kunne ikke oppdatere grafen: {e}")
 
+def thousands_formatter(x, pos):
+    return f'{x:,.0f}'.replace(',', ' ')
+
+
 def opprett_graf_knapp():
     try:
         # Last inn grafikonet
-        graf_icon = Image.open("graph.ico")
+        if os.path.exists("graph.ico"):
+            graf_icon = Image.open("graph.ico")
         graf_icon = graf_icon.resize((30, 30), Image.LANCZOS)
         graf_photo = ImageTk.PhotoImage(graf_icon)
 
@@ -423,17 +562,14 @@ def opprett_graf_knapp():
 # Opprett hovedvinduet
 vindu = tk.Tk()
 vindu.title("Utleiekalkulator")
-
-# Lagre original vindusstørrelse
-original_size = "500x900"
-graph_size = "1000x900"
-vindu.geometry(original_size)
+vindu.geometry("500x900")  # Justert vindustørrelse
 
 # Koble Return-tasten til beregningsfunksjonen
 vindu.bind('<Return>', lambda event: beregn())
 
-# Initialiser var_møblert
+# Initialiser var_møblert og var_11_mnd
 var_møblert = tk.BooleanVar()
+var_11_mnd = tk.BooleanVar()
 
 # Innholdsramme
 content_frame = tk.Frame(vindu)
@@ -441,7 +577,8 @@ content_frame.pack(fill='both', expand=True)
 
 # Hovedramme for inndata og resultater
 main_frame = tk.Frame(content_frame, width=500)
-main_frame.pack(side='left', fill='both', expand=False)
+main_frame.pack(side='left', fill='both', expand=False, pady=10)
+main_frame.pack_propagate(False)  # Prevent main_frame from resizing based on its content
 
 # Ramme for grafen (starter tom)
 graph_frame = tk.Frame(content_frame)
@@ -507,9 +644,21 @@ lbl_kommunale_avgifter.pack()
 entry_kommunale_avgifter = tk.Entry(input_frame)
 entry_kommunale_avgifter.pack()
 
+# Initialiser var_møblert og var_11_mnd
+var_møblert = tk.BooleanVar()
+var_11_mnd = tk.BooleanVar()
+
+# Ramme for avhukingsbokser
+checkbox_frame = tk.Frame(input_frame)
+checkbox_frame.pack(pady=(5, 0))
+
 # Avhukingsboks for "Møblert"
-chk_møblert = tk.Checkbutton(input_frame, text="Møblert", variable=var_møblert)
-chk_møblert.pack()
+chk_møblert = tk.Checkbutton(checkbox_frame, text="Møblert", variable=var_møblert)
+chk_møblert.pack(side='left')
+
+# Avhukingsboks for "Beregn med 11 måneder"
+chk_11_mnd = tk.Checkbutton(checkbox_frame, text="Beregn med 11 måneders leieinntekt", variable=var_11_mnd)
+chk_11_mnd.pack(side='left', padx=10)
 
 # Resultater
 result_frame = tk.Frame(main_frame)
@@ -586,4 +735,3 @@ opprett_graf_knapp()
 
 # Start hovedløkken
 vindu.mainloop()
-
