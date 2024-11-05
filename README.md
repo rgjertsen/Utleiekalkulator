@@ -111,4 +111,4 @@ Bidrag er velkomne! Vennligst opprett en branch av repoet, gjør endringene dine
 
 ## AI-assistanse
 
-Dette prosjektet er utviklet med hjelp av GitHub Copilot og ChatGPT.
+Dette prosjektet er utviklet med hjelp av GitHub Copilot, ChatGPT og Claude Sonnet.
