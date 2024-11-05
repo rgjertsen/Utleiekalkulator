@@ -108,3 +108,7 @@ Utleiekalkulator er et Python-basert program som hjelper deg med å beregne øko
 ## Bidrag
 
 Bidrag er velkomne! Vennligst opprett en branch av repoet, gjør endringene dine, og opprett en pull request.
+
+## AI-assistanse
+
+Dette prosjektet er utviklet med hjelp av GitHub Copilot og ChatGPT.
